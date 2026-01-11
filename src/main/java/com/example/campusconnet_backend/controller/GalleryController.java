@@ -1,54 +1,46 @@
 package com.example.campusconnet_backend.controller;
 
 import com.example.campusconnet_backend.entity.Gallery;
-import com.example.campusconnet_backend.repository.GalleryRepository;
+import com.example.campusconnet_backend.service.GalleryService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/galleries")
+@RequestMapping("/api/gallery")
 @CrossOrigin(origins = "*")
+@Transactional
 public class GalleryController {
 
-    private final GalleryRepository repo;
+    private final GalleryService service;
 
-    public GalleryController(GalleryRepository repo) {
-        this.repo = repo;
+    public GalleryController(GalleryService service) {
+        this.service = service;
     }
 
     @GetMapping
     public List<Gallery> getAll() {
-        return repo.findAll();
+        return service.getAll();
     }
 
     @GetMapping("/{id}")
     public Gallery getById(@PathVariable Long id) {
-        return repo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Gallery not found: " + id));
+        return service.findById(id);
     }
 
     @PostMapping
     public Gallery create(@RequestBody Gallery gallery) {
-        return repo.save(gallery);
+        return service.save(gallery);
     }
 
     @PutMapping("/{id}")
     public Gallery update(@PathVariable Long id, @RequestBody Gallery data) {
-        Gallery g = getById(id);
-
-        g.setImageUrl(data.getImageUrl());
-        g.setAltText(data.getAltText());
-        g.setCategory(data.getCategory());
-        g.setEventName(data.getEventName());
-        g.setYear(data.getYear());
-        g.setDate(data.getDate());
-
-        return repo.save(g);
+        return service.update(id, data);
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
-        repo.deleteById(id);
+        service.delete(id);
     }
 }

@@ -1,53 +1,46 @@
 package com.example.campusconnet_backend.controller;
 
 import com.example.campusconnet_backend.entity.Feedback;
-import com.example.campusconnet_backend.repository.FeedbackRepository;
+import com.example.campusconnet_backend.service.FeedbackService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/feedbacks")
+@RequestMapping("/api/feedback")
 @CrossOrigin(origins = "*")
+@Transactional
 public class FeedbackController {
 
-    private final FeedbackRepository repo;
+    private final FeedbackService service;
 
-    public FeedbackController(FeedbackRepository repo) {
-        this.repo = repo;
+    public FeedbackController(FeedbackService service) {
+        this.service = service;
     }
 
     @GetMapping
     public List<Feedback> getAll() {
-        return repo.findAll();
+        return service.getAll();
     }
 
     @GetMapping("/{id}")
     public Feedback getById(@PathVariable Long id) {
-        return repo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Feedback not found: " + id));
+        return service.findById(id);
     }
 
     @PostMapping
     public Feedback create(@RequestBody Feedback feedback) {
-        return repo.save(feedback);
+        return service.save(feedback);
     }
 
     @PutMapping("/{id}")
     public Feedback update(@PathVariable Long id, @RequestBody Feedback data) {
-        Feedback fb = getById(id);
-
-        fb.setName(data.getName());
-        fb.setEmail(data.getEmail());
-        fb.setRating(data.getRating());
-        fb.setFeedback(data.getFeedback());
-        fb.setStatus(data.getStatus());
-
-        return repo.save(fb);
+        return service.update(id, data);
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
-        repo.deleteById(id);
+        service.delete(id);
     }
 }

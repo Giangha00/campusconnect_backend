@@ -3,6 +3,7 @@ package com.example.campusconnet_backend.service;
 import com.example.campusconnet_backend.entity.Event;
 import com.example.campusconnet_backend.repository.EventRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -14,14 +15,22 @@ public class EventService {
         this.repo = repo;
     }
 
-    public List<Event> findAll() { return repo.findAll(); }
+    @Transactional(readOnly = true)
+    public List<Event> findAll() {
+        return repo.findAll();
+    }
 
+    @Transactional(readOnly = true)
     public Event findById(Long id) {
         return repo.findById(id).orElseThrow(() -> new RuntimeException("Event not found: " + id));
     }
 
-    public Event create(Event e) { return repo.save(e); }
+    @Transactional
+    public Event create(Event e) {
+        return repo.save(e);
+    }
 
+    @Transactional
     public Event update(Long id, Event data) {
         Event e = findById(id);
 
@@ -42,5 +51,8 @@ public class EventService {
         return repo.save(e);
     }
 
-    public void delete(Long id) { repo.deleteById(id); }
+    @Transactional
+    public void delete(Long id) {
+        repo.deleteById(id);
+    }
 }

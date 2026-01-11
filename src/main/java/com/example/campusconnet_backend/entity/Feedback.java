@@ -2,6 +2,7 @@ package com.example.campusconnet_backend.entity;
 
 import com.example.campusconnet_backend.model.FeedbackStatus;
 import com.example.campusconnet_backend.model.UserType;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -18,10 +19,12 @@ public class Feedback {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="user_id")
+    @JsonIgnore
     private User user; // nullable
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="event_id")
+    @JsonIgnore
     private Event event; // nullable
 
     @Column(nullable = false, length = 100)

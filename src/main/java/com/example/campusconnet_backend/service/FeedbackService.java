@@ -3,6 +3,7 @@ package com.example.campusconnet_backend.service;
 import com.example.campusconnet_backend.entity.Feedback;
 import com.example.campusconnet_backend.repository.FeedbackRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -15,14 +16,36 @@ public class FeedbackService {
         this.repo = repo;
     }
 
+    @Transactional(readOnly = true)
     public List<Feedback> getAll() {
         return repo.findAll();
     }
 
+    @Transactional(readOnly = true)
+    public Feedback findById(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Feedback not found: " + id));
+    }
+
+    @Transactional
     public Feedback save(Feedback feedback) {
         return repo.save(feedback);
     }
 
+    @Transactional
+    public Feedback update(Long id, Feedback data) {
+        Feedback fb = findById(id);
+
+        fb.setName(data.getName());
+        fb.setEmail(data.getEmail());
+        fb.setRating(data.getRating());
+        fb.setFeedback(data.getFeedback());
+        fb.setStatus(data.getStatus());
+
+        return repo.save(fb);
+    }
+
+    @Transactional
     public void delete(Long id) {
         repo.deleteById(id);
     }

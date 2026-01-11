@@ -1,5 +1,6 @@
 package com.example.campusconnet_backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -19,10 +20,12 @@ public class EventRegistration {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="user_id", nullable = false)
+    @JsonIgnore
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="event_id", nullable = false)
+    @JsonIgnore
     private Event event;
 
     @Column(name="ticket_number", nullable = false, unique = true, length = 50)

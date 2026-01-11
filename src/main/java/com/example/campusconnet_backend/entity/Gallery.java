@@ -1,6 +1,7 @@
 package com.example.campusconnet_backend.entity;
 
 import com.example.campusconnet_backend.model.EventCategory;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -18,6 +19,7 @@ public class Gallery {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="event_id")
+    @JsonIgnore
     private Event event; // nullable
 
     @Column(name="image_url", nullable = false, length = 500)
