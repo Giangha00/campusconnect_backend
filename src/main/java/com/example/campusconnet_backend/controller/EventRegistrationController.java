@@ -24,8 +24,26 @@ public class EventRegistrationController {
     }
 
     @PostMapping
-    public EventRegistration register(@RequestBody EventRegistration reg) {
-        return service.save(reg);
+    public EventRegistration register(@RequestBody java.util.Map<String, Object> request) {
+        String userId = (String) request.get("userId");
+        Object eventIdObj = request.get("eventId");
+        Long eventId;
+        
+        if (eventIdObj instanceof Integer) {
+            eventId = ((Integer) eventIdObj).longValue();
+        } else if (eventIdObj instanceof Long) {
+            eventId = (Long) eventIdObj;
+        } else if (eventIdObj instanceof String) {
+            eventId = Long.parseLong((String) eventIdObj);
+        } else {
+            throw new RuntimeException("Invalid eventId format");
+        }
+        
+        if (userId == null || userId.isBlank()) {
+            throw new RuntimeException("userId is required");
+        }
+        
+        return service.save(userId, eventId);
     }
 
     @PutMapping("/{id}/checkin")

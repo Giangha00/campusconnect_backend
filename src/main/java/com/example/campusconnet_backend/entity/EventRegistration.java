@@ -28,7 +28,7 @@ public class EventRegistration {
     @JsonIgnore
     private Event event;
 
-    @Column(name="ticket_number", nullable = false, unique = true, length = 50)
+    @Column(name="ticket_number", unique = true, length = 50)
     private String ticketNumber;
 
     @Column(name="registration_date", nullable = false)
