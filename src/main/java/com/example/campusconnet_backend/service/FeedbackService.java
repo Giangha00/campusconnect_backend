@@ -5,6 +5,7 @@ import com.example.campusconnet_backend.repository.FeedbackRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -29,6 +30,11 @@ public class FeedbackService {
 
     @Transactional
     public Feedback save(Feedback feedback) {
+        Instant now = Instant.now();
+        if (feedback.getCreatedAt() == null) {
+            feedback.setCreatedAt(now);
+        }
+        feedback.setUpdatedAt(now);
         return repo.save(feedback);
     }
 
@@ -41,6 +47,7 @@ public class FeedbackService {
         fb.setRating(data.getRating());
         fb.setFeedback(data.getFeedback());
         fb.setStatus(data.getStatus());
+        fb.setUpdatedAt(Instant.now());
 
         return repo.save(fb);
     }

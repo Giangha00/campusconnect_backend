@@ -5,6 +5,7 @@ import com.example.campusconnet_backend.repository.GalleryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -29,6 +30,11 @@ public class GalleryService {
 
     @Transactional
     public Gallery save(Gallery gallery) {
+        Instant now = Instant.now();
+        if (gallery.getCreatedAt() == null) {
+            gallery.setCreatedAt(now);
+        }
+        gallery.setUpdatedAt(now);
         return repo.save(gallery);
     }
 
@@ -42,6 +48,7 @@ public class GalleryService {
         g.setEventName(data.getEventName());
         g.setYear(data.getYear());
         g.setDate(data.getDate());
+        g.setUpdatedAt(Instant.now());
 
         return repo.save(g);
     }

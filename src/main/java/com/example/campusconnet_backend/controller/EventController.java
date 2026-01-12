@@ -2,12 +2,15 @@ package com.example.campusconnet_backend.controller;
 
 import com.example.campusconnet_backend.entity.Event;
 import com.example.campusconnet_backend.service.EventService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/events")
+@CrossOrigin(origins = "*")
+@Transactional
 public class EventController {
 
     private final EventService service;

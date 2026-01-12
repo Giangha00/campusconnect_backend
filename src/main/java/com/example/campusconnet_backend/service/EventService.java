@@ -5,6 +5,7 @@ import com.example.campusconnet_backend.repository.EventRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -27,6 +28,11 @@ public class EventService {
 
     @Transactional
     public Event create(Event e) {
+        Instant now = Instant.now();
+        if (e.getCreatedAt() == null) {
+            e.setCreatedAt(now);
+        }
+        e.setUpdatedAt(now);
         return repo.save(e);
     }
 
@@ -47,6 +53,7 @@ public class EventService {
         e.setRegistrationStart(data.getRegistrationStart());
         e.setRegistrationEnd(data.getRegistrationEnd());
         e.setOrganizer(data.getOrganizer());
+        e.setUpdatedAt(Instant.now());
 
         return repo.save(e);
     }

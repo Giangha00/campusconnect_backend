@@ -5,6 +5,7 @@ import com.example.campusconnet_backend.repository.EventRegistrationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,9 +31,25 @@ public class EventRegistrationService {
 
     @Transactional
     public EventRegistration save(EventRegistration reg) {
+        Instant now = Instant.now();
+        
         if (reg.getId() == null) {
             reg.setId(UUID.randomUUID().toString());
         }
+        
+        if (reg.getRegistrationDate() == null) {
+            reg.setRegistrationDate(now);
+        }
+        
+        if (reg.getCheckedIn() == null) {
+            reg.setCheckedIn(false);
+        }
+        
+        if (reg.getCreatedAt() == null) {
+            reg.setCreatedAt(now);
+        }
+        reg.setUpdatedAt(now);
+        
         return repo.save(reg);
     }
 
@@ -40,7 +57,8 @@ public class EventRegistrationService {
     public EventRegistration checkIn(String id) {
         EventRegistration reg = findById(id);
         reg.setCheckedIn(true);
-        reg.setCheckedInAt(java.time.Instant.now());
+        reg.setCheckedInAt(Instant.now());
+        reg.setUpdatedAt(Instant.now());
         return repo.save(reg);
     }
 

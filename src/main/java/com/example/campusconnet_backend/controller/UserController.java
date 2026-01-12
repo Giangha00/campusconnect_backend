@@ -1,57 +1,46 @@
 package com.example.campusconnet_backend.controller;
 
 import com.example.campusconnet_backend.entity.User;
-import com.example.campusconnet_backend.repository.UserRepository;
+import com.example.campusconnet_backend.service.UserService;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
+@CrossOrigin(origins = "*")
+@Transactional
 public class UserController {
 
-    private final UserRepository repo;
+    private final UserService service;
 
-    public UserController(UserRepository repo) {
-        this.repo = repo;
+    public UserController(UserService service) {
+        this.service = service;
     }
 
     @GetMapping
     public List<User> getAll() {
-        return repo.findAll();
+        return service.getAll();
     }
 
     @GetMapping("/{id}")
     public User getById(@PathVariable String id) {
-        return repo.findById(id).orElseThrow(() -> new RuntimeException("User not found: " + id));
+        return service.getById(id);
     }
 
     @PostMapping
-    public User create(@RequestBody User u) {
-        if (u.getId() == null || u.getId().isBlank()) {
-            u.setId(UUID.randomUUID().toString());
-        }
-        return repo.save(u);
+    public User create(@RequestBody User user) {
+        return service.save(user);
     }
 
     @PutMapping("/{id}")
     public User update(@PathVariable String id, @RequestBody User data) {
-        User u = getById(id);
-
-        u.setUsername(data.getUsername());
-        u.setPassword(data.getPassword());
-        u.setName(data.getName());
-        u.setEmail(data.getEmail());
-        u.setRole(data.getRole());
-        u.setDepartment(data.getDepartment());
-        u.setYear(data.getYear());
-
-        return repo.save(u);
+        return service.update(id, data);
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable String id) {
-        repo.deleteById(id);
+        service.delete(id);
     }
 }
