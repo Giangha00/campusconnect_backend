@@ -1,8 +1,12 @@
 package com.example.campusconnet_backend.controller;
 
 import com.example.campusconnet_backend.dto.LoginRequest;
+import com.example.campusconnet_backend.dto.UserCreateRequest;
+import com.example.campusconnet_backend.dto.UserResponse;
+import com.example.campusconnet_backend.dto.UserUpdateRequest;
 import com.example.campusconnet_backend.entity.User;
 import com.example.campusconnet_backend.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,24 +26,28 @@ public class UserController {
         this.service = service;
     }
 
+    // GET endpoints - return Response DTOs (without password)
     @GetMapping
-    public List<User> getAll() {
-        return service.getAll();
+    public List<UserResponse> getAll() {
+        return service.getAllResponses();
     }
 
     @GetMapping("/{id}")
-    public User getById(@PathVariable String id) {
-        return service.getById(id);
+    public UserResponse getById(@PathVariable String id) {
+        return service.getResponseById(id);
     }
 
+    // POST/PUT endpoints - return Response DTOs (without password)
     @PostMapping
-    public User create(@RequestBody User user) {
-        return service.save(user);
+    public UserResponse create(@Valid @RequestBody UserCreateRequest request) {
+        User user = service.create(request);
+        return service.getResponseById(user.getId());
     }
 
     @PutMapping("/{id}")
-    public User update(@PathVariable String id, @RequestBody User data) {
-        return service.update(id, data);
+    public UserResponse update(@PathVariable String id, @Valid @RequestBody UserUpdateRequest request) {
+        User user = service.update(id, request);
+        return service.getResponseById(user.getId());
     }
 
     @DeleteMapping("/{id}")
@@ -48,9 +56,9 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<User> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<UserResponse> login(@RequestBody LoginRequest request) {
         try {
-            User user = service.login(request.getUsername(), request.getPassword());
+            UserResponse user = service.loginResponse(request.getUsername(), request.getPassword());
             return ResponseEntity.ok(user);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

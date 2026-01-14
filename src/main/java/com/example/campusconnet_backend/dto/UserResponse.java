@@ -1,0 +1,24 @@
+package com.example.campusconnet_backend.dto;
+
+import com.example.campusconnet_backend.model.Role;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.Instant;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserResponse {
+    private String id;
+    private String username;
+    // Password is NOT included for security
+    private String name;
+    private String email;
+    private Role role;
+    private String department;
+    private String year;
+    private Instant createdAt;
+    private Instant updatedAt;
+}

@@ -1,5 +1,8 @@
 package com.example.campusconnet_backend.service;
 
+import com.example.campusconnet_backend.dto.AdminCreateRequest;
+import com.example.campusconnet_backend.dto.AdminResponse;
+import com.example.campusconnet_backend.dto.AdminUpdateRequest;
 import com.example.campusconnet_backend.entity.Admin;
 import com.example.campusconnet_backend.repository.AdminRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -8,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Service
@@ -27,11 +31,54 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
+    public List<AdminResponse> getAllResponses() {
+        return repo.findAll().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public Admin getById(String id) {
         return repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Admin not found: " + id));
     }
 
+    @Transactional(readOnly = true)
+    public AdminResponse getResponseById(String id) {
+        Admin admin = getById(id);
+        return toResponse(admin);
+    }
+
+    private AdminResponse toResponse(Admin admin) {
+        return new AdminResponse(
+                admin.getId(),
+                admin.getUsername(),
+                admin.getName(),
+                admin.getEmail(),
+                admin.getRole(),
+                admin.getCreatedAt(),
+                admin.getUpdatedAt()
+        );
+    }
+
+    @Transactional
+    public Admin create(AdminCreateRequest request) {
+        Instant now = Instant.now();
+        
+        Admin admin = new Admin();
+        admin.setId(UUID.randomUUID().toString());
+        admin.setUsername(request.getUsername());
+        admin.setPassword(passwordEncoder.encode(request.getPassword()));
+        admin.setName(request.getName());
+        admin.setEmail(request.getEmail());
+        admin.setRole(request.getRole());
+        admin.setCreatedAt(now);
+        admin.setUpdatedAt(now);
+        
+        return repo.save(admin);
+    }
+
+    // Keep old method for backward compatibility if needed
     @Transactional
     public Admin save(Admin admin) {
         Instant now = Instant.now();
@@ -57,25 +104,28 @@ public class AdminService {
     }
 
     @Transactional
-    public Admin update(String id, Admin data) {
+    public Admin update(String id, AdminUpdateRequest request) {
         Admin admin = getById(id);
         
-        admin.setUsername(data.getUsername());
-        
-        // Hash password nếu có thay đổi và chưa được hash
-        if (data.getPassword() != null && !data.getPassword().isBlank()) {
-            // Chỉ hash nếu password chưa được hash (không bắt đầu bằng $2a$ hoặc $2b$)
-            if (!data.getPassword().startsWith("$2a$") && !data.getPassword().startsWith("$2b$")) {
-                admin.setPassword(passwordEncoder.encode(data.getPassword()));
-            } else {
-                // Nếu đã được hash rồi thì giữ nguyên
-                admin.setPassword(data.getPassword());
-            }
+        if (request.getUsername() != null) {
+            admin.setUsername(request.getUsername());
         }
         
-        admin.setName(data.getName());
-        admin.setEmail(data.getEmail());
-        admin.setRole(data.getRole());
+        // Hash password nếu có thay đổi
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            admin.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+        
+        if (request.getName() != null) {
+            admin.setName(request.getName());
+        }
+        if (request.getEmail() != null) {
+            admin.setEmail(request.getEmail());
+        }
+        if (request.getRole() != null) {
+            admin.setRole(request.getRole());
+        }
+        
         admin.setUpdatedAt(Instant.now());
         
         return repo.save(admin);
@@ -97,5 +147,11 @@ public class AdminService {
         }
         
         return admin;
+    }
+
+    @Transactional(readOnly = true)
+    public AdminResponse loginResponse(String username, String password) {
+        Admin admin = login(username, password);
+        return toResponse(admin);
     }
 }

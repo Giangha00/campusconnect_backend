@@ -1,7 +1,10 @@
 package com.example.campusconnet_backend.controller;
 
+import com.example.campusconnet_backend.dto.EventCreateRequest;
+import com.example.campusconnet_backend.dto.EventUpdateRequest;
 import com.example.campusconnet_backend.entity.Event;
 import com.example.campusconnet_backend.service.EventService;
+import jakarta.validation.Valid;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,13 +33,13 @@ public class EventController {
     }
 
     @PostMapping
-    public Event create(@RequestBody Event e) {
-        return service.create(e);
+    public Event create(@Valid @RequestBody EventCreateRequest request) {
+        return service.create(request);
     }
 
     @PutMapping("/{id}")
-    public Event update(@PathVariable Long id, @RequestBody Event e) {
-        return service.update(id, e);
+    public Event update(@PathVariable Long id, @Valid @RequestBody EventUpdateRequest request) {
+        return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
