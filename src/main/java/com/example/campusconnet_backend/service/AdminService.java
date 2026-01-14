@@ -2,6 +2,7 @@ package com.example.campusconnet_backend.service;
 
 import com.example.campusconnet_backend.entity.Admin;
 import com.example.campusconnet_backend.repository.AdminRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,9 +14,11 @@ import java.util.UUID;
 public class AdminService {
 
     private final AdminRepository repo;
+    private final PasswordEncoder passwordEncoder;
 
-    public AdminService(AdminRepository repo) {
+    public AdminService(AdminRepository repo, PasswordEncoder passwordEncoder) {
         this.repo = repo;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
@@ -37,6 +40,14 @@ public class AdminService {
             admin.setId(UUID.randomUUID().toString());
         }
         
+        // Hash password trước khi lưu
+        if (admin.getPassword() != null && !admin.getPassword().isBlank()) {
+            // Chỉ hash nếu password chưa được hash (không bắt đầu bằng $2a$ hoặc $2b$)
+            if (!admin.getPassword().startsWith("$2a$") && !admin.getPassword().startsWith("$2b$")) {
+                admin.setPassword(passwordEncoder.encode(admin.getPassword()));
+            }
+        }
+        
         if (admin.getCreatedAt() == null) {
             admin.setCreatedAt(now);
         }
@@ -50,7 +61,18 @@ public class AdminService {
         Admin admin = getById(id);
         
         admin.setUsername(data.getUsername());
-        admin.setPassword(data.getPassword());
+        
+        // Hash password nếu có thay đổi và chưa được hash
+        if (data.getPassword() != null && !data.getPassword().isBlank()) {
+            // Chỉ hash nếu password chưa được hash (không bắt đầu bằng $2a$ hoặc $2b$)
+            if (!data.getPassword().startsWith("$2a$") && !data.getPassword().startsWith("$2b$")) {
+                admin.setPassword(passwordEncoder.encode(data.getPassword()));
+            } else {
+                // Nếu đã được hash rồi thì giữ nguyên
+                admin.setPassword(data.getPassword());
+            }
+        }
+        
         admin.setName(data.getName());
         admin.setEmail(data.getEmail());
         admin.setRole(data.getRole());
