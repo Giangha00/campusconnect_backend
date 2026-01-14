@@ -63,6 +63,16 @@ public class AdminService {
 
     @Transactional
     public Admin create(AdminCreateRequest request) {
+        // Check if username already exists
+        if (repo.existsByUsername(request.getUsername())) {
+            throw new RuntimeException("Username đã tồn tại. Vui lòng chọn một username mới.");
+        }
+        
+        // Check if email already exists
+        if (repo.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email này đã đăng ký tài khoản. Vui lòng kiểm tra lại.");
+        }
+        
         Instant now = Instant.now();
         
         Admin admin = new Admin();
@@ -107,7 +117,11 @@ public class AdminService {
     public Admin update(String id, AdminUpdateRequest request) {
         Admin admin = getById(id);
         
-        if (request.getUsername() != null) {
+        // Check username uniqueness if it's being changed
+        if (request.getUsername() != null && !request.getUsername().equals(admin.getUsername())) {
+            if (repo.existsByUsername(request.getUsername())) {
+                throw new RuntimeException("Username đã tồn tại. Vui lòng chọn một username mới.");
+            }
             admin.setUsername(request.getUsername());
         }
         
@@ -119,9 +133,15 @@ public class AdminService {
         if (request.getName() != null) {
             admin.setName(request.getName());
         }
-        if (request.getEmail() != null) {
+        
+        // Check email uniqueness if it's being changed
+        if (request.getEmail() != null && !request.getEmail().equals(admin.getEmail())) {
+            if (repo.existsByEmail(request.getEmail())) {
+                throw new RuntimeException("Email này đã đăng ký tài khoản. Vui lòng kiểm tra lại.");
+            }
             admin.setEmail(request.getEmail());
         }
+        
         if (request.getRole() != null) {
             admin.setRole(request.getRole());
         }

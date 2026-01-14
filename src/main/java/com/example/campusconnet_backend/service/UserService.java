@@ -65,6 +65,16 @@ public class UserService {
 
     @Transactional
     public User create(UserCreateRequest request) {
+        // Check if username already exists
+        if (repo.existsByUsername(request.getUsername())) {
+            throw new RuntimeException("Username đã tồn tại. Vui lòng chọn một username mới.");
+        }
+        
+        // Check if email already exists
+        if (repo.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email này đã đăng ký tài khoản. Vui lòng kiểm tra lại.");
+        }
+        
         Instant now = Instant.now();
         
         User user = new User();
@@ -113,7 +123,11 @@ public class UserService {
     public User update(String id, UserUpdateRequest request) {
         User user = getById(id);
         
-        if (request.getUsername() != null) {
+        // Check username uniqueness if it's being changed
+        if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
+            if (repo.existsByUsername(request.getUsername())) {
+                throw new RuntimeException("Username đã tồn tại. Vui lòng chọn một username mới.");
+            }
             user.setUsername(request.getUsername());
         }
         
@@ -125,9 +139,15 @@ public class UserService {
         if (request.getName() != null) {
             user.setName(request.getName());
         }
-        if (request.getEmail() != null) {
+        
+        // Check email uniqueness if it's being changed
+        if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
+            if (repo.existsByEmail(request.getEmail())) {
+                throw new RuntimeException("Email này đã đăng ký tài khoản. Vui lòng kiểm tra lại.");
+            }
             user.setEmail(request.getEmail());
         }
+        
         if (request.getRole() != null) {
             user.setRole(request.getRole());
         }
