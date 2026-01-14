@@ -1,7 +1,10 @@
 package com.example.campusconnet_backend.controller;
 
+import com.example.campusconnet_backend.dto.LoginRequest;
 import com.example.campusconnet_backend.entity.User;
 import com.example.campusconnet_backend.service.UserService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,5 +45,15 @@ public class UserController {
     @DeleteMapping("/{id}")
     public void delete(@PathVariable String id) {
         service.delete(id);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<User> login(@RequestBody LoginRequest request) {
+        try {
+            User user = service.login(request.getUsername(), request.getPassword());
+            return ResponseEntity.ok(user);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
     }
 }

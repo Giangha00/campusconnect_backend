@@ -89,4 +89,17 @@ public class UserService {
     public void delete(String id) {
         repo.deleteById(id);
     }
+
+    @Transactional(readOnly = true)
+    public User login(String username, String password) {
+        User user = repo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Invalid username or password"));
+        
+        // Verify password
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Invalid username or password");
+        }
+        
+        return user;
+    }
 }

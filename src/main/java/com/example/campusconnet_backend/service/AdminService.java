@@ -85,4 +85,17 @@ public class AdminService {
     public void delete(String id) {
         repo.deleteById(id);
     }
+
+    @Transactional(readOnly = true)
+    public Admin login(String username, String password) {
+        Admin admin = repo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Invalid username or password"));
+        
+        // Verify password
+        if (!passwordEncoder.matches(password, admin.getPassword())) {
+            throw new RuntimeException("Invalid username or password");
+        }
+        
+        return admin;
+    }
 }
