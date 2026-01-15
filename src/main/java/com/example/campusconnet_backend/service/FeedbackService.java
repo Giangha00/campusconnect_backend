@@ -28,6 +28,11 @@ public class FeedbackService {
                 .orElseThrow(() -> new RuntimeException("Feedback not found: " + id));
     }
 
+    @Transactional(readOnly = true)
+    public List<Feedback> getByEventId(Long eventId) {
+        return repo.findByEvent_Id(eventId);
+    }
+
     @Transactional
     public Feedback save(Feedback feedback) {
         Instant now = Instant.now();

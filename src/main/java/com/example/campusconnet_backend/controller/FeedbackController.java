@@ -20,7 +20,10 @@ public class FeedbackController {
     }
 
     @GetMapping
-    public List<Feedback> getAll() {
+    public List<Feedback> getAll(@RequestParam(required = false) Long eventId) {
+        if (eventId != null) {
+            return service.getByEventId(eventId);
+        }
         return service.getAll();
     }
 
