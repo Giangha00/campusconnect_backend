@@ -1,5 +1,6 @@
 package com.example.campusconnet_backend.controller;
 
+import com.example.campusconnet_backend.dto.FeedbackCreateRequest;
 import com.example.campusconnet_backend.entity.Feedback;
 import com.example.campusconnet_backend.service.FeedbackService;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,8 +34,8 @@ public class FeedbackController {
     }
 
     @PostMapping
-    public Feedback create(@RequestBody Feedback feedback) {
-        return service.save(feedback);
+    public Feedback create(@RequestBody FeedbackCreateRequest request) {
+        return service.create(request);
     }
 
     @PutMapping("/{id}")
