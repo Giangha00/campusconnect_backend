@@ -145,10 +145,12 @@ public class AdminService {
             admin.setEmail(request.getEmail());
         }
         
-        // Nếu admin có role = faculty, không cho phép thay đổi role
+        // Không cho phép thay đổi role cho cả admin và faculty
+        // Chỉ cho phép thay đổi trạng thái active/inactive
         if (request.getRole() != null) {
-            if (Role.faculty.equals(admin.getRole())) {
-                throw new RuntimeException("Không thể thay đổi role của tài khoản quản lý sự kiện khoa/bộ môn. Chỉ có thể thay đổi trạng thái active/inactive.");
+            Role currentRole = admin.getRole();
+            if (Role.admin.equals(currentRole) || Role.faculty.equals(currentRole)) {
+                throw new RuntimeException("Không thể thay đổi role của tài khoản quản trị (admin/faculty). Chỉ có thể thay đổi trạng thái active/inactive.");
             }
             admin.setRole(request.getRole());
         }
