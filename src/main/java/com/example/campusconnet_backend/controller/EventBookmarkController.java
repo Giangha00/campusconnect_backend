@@ -1,11 +1,13 @@
 package com.example.campusconnet_backend.controller;
 
+import com.example.campusconnet_backend.dto.EventBookmarkResponse;
 import com.example.campusconnet_backend.entity.EventBookmark;
 import com.example.campusconnet_backend.service.EventBookmarkService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/event-bookmarks")
@@ -20,15 +22,27 @@ public class EventBookmarkController {
     }
 
     @GetMapping
-    public List<EventBookmark> getAll(@RequestParam(required = false) String userId) {
+    public List<EventBookmarkResponse> getAll(@RequestParam(required = false) String userId) {
+        List<EventBookmark> bookmarks;
         if (userId != null && !userId.isBlank()) {
-            return service.getByUserId(userId);
+            bookmarks = service.getByUserId(userId);
+        } else {
+            bookmarks = service.getAll();
         }
-        return service.getAll();
+        
+        // Convert to DTO with userId and eventId
+        return bookmarks.stream().map(bookmark -> {
+            EventBookmarkResponse response = new EventBookmarkResponse();
+            response.setId(bookmark.getId());
+            response.setUserId(bookmark.getUser() != null ? bookmark.getUser().getId() : null);
+            response.setEventId(bookmark.getEvent() != null ? bookmark.getEvent().getId() : null);
+            response.setCreatedAt(bookmark.getCreatedAt());
+            return response;
+        }).collect(Collectors.toList());
     }
 
     @PostMapping
-    public EventBookmark create(@RequestBody java.util.Map<String, Object> request) {
+    public EventBookmarkResponse create(@RequestBody java.util.Map<String, Object> request) {
         String userId = (String) request.get("userId");
         Object eventIdObj = request.get("eventId");
         Long eventId;
@@ -47,11 +61,26 @@ public class EventBookmarkController {
             throw new RuntimeException("userId is required");
         }
         
-        return service.save(userId, eventId);
+        EventBookmark bookmark = service.save(userId, eventId);
+        
+        // Convert to DTO
+        EventBookmarkResponse response = new EventBookmarkResponse();
+        response.setId(bookmark.getId());
+        response.setUserId(bookmark.getUser() != null ? bookmark.getUser().getId() : userId);
+        response.setEventId(bookmark.getEvent() != null ? bookmark.getEvent().getId() : eventId);
+        response.setCreatedAt(bookmark.getCreatedAt());
+        return response;
     }
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable String id) {
         service.delete(id);
+    }
+
+    @DeleteMapping
+    public void deleteByUserAndEvent(
+            @RequestParam String userId,
+            @RequestParam Long eventId) {
+        service.deleteByUserAndEvent(userId, eventId);
     }
 }

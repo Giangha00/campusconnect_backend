@@ -82,4 +82,14 @@ public class EventBookmarkService {
     public void delete(String id) {
         repo.deleteById(id);
     }
+
+    @Transactional
+    public void deleteByUserAndEvent(String userId, Long eventId) {
+        Optional<EventBookmark> bookmark = repo.findByUser_IdAndEvent_Id(userId, eventId);
+        if (bookmark.isPresent()) {
+            repo.deleteById(bookmark.get().getId());
+        } else {
+            throw new RuntimeException("Bookmark not found for userId: " + userId + ", eventId: " + eventId);
+        }
+    }
 }
