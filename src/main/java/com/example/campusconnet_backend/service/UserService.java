@@ -56,6 +56,7 @@ public class UserService {
                 user.getName(),
                 user.getEmail(),
                 user.getRole(),
+                user.getActive(),
                 user.getDepartment(),
                 user.getYear(),
                 user.getCreatedAt(),
@@ -84,6 +85,7 @@ public class UserService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setRole(request.getRole());
+        user.setActive(true); // Mặc định active khi tạo mới
         user.setDepartment(request.getDepartment());
         user.setYear(request.getYear());
         user.setCreatedAt(now);
@@ -151,6 +153,41 @@ public class UserService {
         if (request.getRole() != null) {
             user.setRole(request.getRole());
         }
+        
+        // Cập nhật trạng thái active/inactive
+        // Hỗ trợ cả Boolean active và String status ("Active"/"Inactive")
+        Boolean newActiveStatus = null;
+        
+        if (request.getActive() != null) {
+            // Nếu có trường active (boolean)
+            newActiveStatus = request.getActive();
+            System.out.println("✅ Received 'active' field (boolean): " + newActiveStatus);
+        } else if (request.getStatus() != null && !request.getStatus().trim().isEmpty()) {
+            // Nếu có trường status (string) - chuyển đổi từ "Active"/"Inactive" sang boolean
+            String statusStr = request.getStatus().trim();
+            if ("Active".equalsIgnoreCase(statusStr)) {
+                newActiveStatus = true;
+            } else if ("Inactive".equalsIgnoreCase(statusStr)) {
+                newActiveStatus = false;
+            } else {
+                System.out.println("⚠️ WARNING: Invalid status value: '" + statusStr + "'. Expected 'Active' or 'Inactive'");
+            }
+            System.out.println("✅ Received 'status' field (string): '" + statusStr + "' -> converted to active: " + newActiveStatus);
+        }
+        
+        if (newActiveStatus != null) {
+            Boolean oldActiveStatus = user.getActive();
+            user.setActive(newActiveStatus);
+            System.out.println("✅ Updating user active status from " + oldActiveStatus + " to " + newActiveStatus + " for user ID: " + user.getId());
+        } else {
+            System.out.println("⚠️ WARNING: Neither 'active' nor 'status' field provided in update request for user ID: " + user.getId());
+            System.out.println("⚠️ Keeping current active status: " + user.getActive());
+            System.out.println("⚠️ To update active status, include either:");
+            System.out.println("   - 'active' field (boolean: true/false), OR");
+            System.out.println("   - 'status' field (string: 'Active'/'Inactive'), OR");
+            System.out.println("   - Use PATCH /api/users/{id}/status endpoint");
+        }
+        
         if (request.getDepartment() != null) {
             user.setDepartment(request.getDepartment());
         }
@@ -160,7 +197,36 @@ public class UserService {
         
         user.setUpdatedAt(Instant.now());
         
-        return repo.save(user);
+        // Save và flush để đảm bảo thay đổi được lưu vào database ngay lập tức
+        User savedUser = repo.save(user);
+        repo.flush(); // Force flush to database
+        
+        System.out.println("DEBUG: User saved successfully. Active status in DB: " + savedUser.getActive() + " for user ID: " + savedUser.getId());
+        
+        // Verify sau khi save
+        User verifiedUser = repo.findById(savedUser.getId()).orElse(null);
+        if (verifiedUser != null) {
+            System.out.println("DEBUG: Verified active status after save: " + verifiedUser.getActive() + " for user ID: " + verifiedUser.getId());
+        }
+        
+        return savedUser;
+    }
+
+    @Transactional
+    public User updateStatus(String id, Boolean active) {
+        User user = getById(id);
+        Boolean oldActiveStatus = user.getActive();
+        user.setActive(active);
+        user.setUpdatedAt(Instant.now());
+        
+        System.out.println("DEBUG: Updating user status from " + oldActiveStatus + " to " + active + " for user ID: " + user.getId());
+        
+        User savedUser = repo.save(user);
+        repo.flush();
+        
+        System.out.println("DEBUG: User status updated successfully. Active status: " + savedUser.getActive() + " for user ID: " + savedUser.getId());
+        
+        return savedUser;
     }
 
     @Transactional

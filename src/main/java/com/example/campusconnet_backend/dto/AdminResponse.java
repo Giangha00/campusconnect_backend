@@ -17,6 +17,7 @@ public class AdminResponse {
     private String name;
     private String email;
     private Role role;
+    private Boolean active;
     private Instant createdAt;
     private Instant updatedAt;
 }

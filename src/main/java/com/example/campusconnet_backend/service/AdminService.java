@@ -4,6 +4,7 @@ import com.example.campusconnet_backend.dto.AdminCreateRequest;
 import com.example.campusconnet_backend.dto.AdminResponse;
 import com.example.campusconnet_backend.dto.AdminUpdateRequest;
 import com.example.campusconnet_backend.entity.Admin;
+import com.example.campusconnet_backend.model.Role;
 import com.example.campusconnet_backend.repository.AdminRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -56,6 +57,7 @@ public class AdminService {
                 admin.getName(),
                 admin.getEmail(),
                 admin.getRole(),
+                admin.getActive(),
                 admin.getCreatedAt(),
                 admin.getUpdatedAt()
         );
@@ -82,6 +84,7 @@ public class AdminService {
         admin.setName(request.getName());
         admin.setEmail(request.getEmail());
         admin.setRole(request.getRole());
+        admin.setActive(true); // Mặc định active khi tạo mới
         admin.setCreatedAt(now);
         admin.setUpdatedAt(now);
         
@@ -142,13 +145,70 @@ public class AdminService {
             admin.setEmail(request.getEmail());
         }
         
+        // Nếu admin có role = faculty, không cho phép thay đổi role
         if (request.getRole() != null) {
+            if (Role.faculty.equals(admin.getRole())) {
+                throw new RuntimeException("Không thể thay đổi role của tài khoản quản lý sự kiện khoa/bộ môn. Chỉ có thể thay đổi trạng thái active/inactive.");
+            }
             admin.setRole(request.getRole());
+        }
+        
+        // Cập nhật trạng thái active/inactive
+        // Hỗ trợ cả Boolean active và String status ("Active"/"Inactive")
+        Boolean newActiveStatus = null;
+        
+        if (request.getActive() != null) {
+            // Nếu có trường active (boolean)
+            newActiveStatus = request.getActive();
+            System.out.println("✅ Received 'active' field (boolean): " + newActiveStatus);
+        } else if (request.getStatus() != null && !request.getStatus().trim().isEmpty()) {
+            // Nếu có trường status (string) - chuyển đổi từ "Active"/"Inactive" sang boolean
+            String statusStr = request.getStatus().trim();
+            if ("Active".equalsIgnoreCase(statusStr)) {
+                newActiveStatus = true;
+            } else if ("Inactive".equalsIgnoreCase(statusStr)) {
+                newActiveStatus = false;
+            } else {
+                System.out.println("⚠️ WARNING: Invalid status value: '" + statusStr + "'. Expected 'Active' or 'Inactive'");
+            }
+            System.out.println("✅ Received 'status' field (string): '" + statusStr + "' -> converted to active: " + newActiveStatus);
+        }
+        
+        if (newActiveStatus != null) {
+            Boolean oldActiveStatus = admin.getActive();
+            admin.setActive(newActiveStatus);
+            System.out.println("✅ Updating admin active status from " + oldActiveStatus + " to " + newActiveStatus + " for admin ID: " + admin.getId());
+        } else {
+            System.out.println("⚠️ WARNING: Neither 'active' nor 'status' field provided in update request for admin ID: " + admin.getId());
+            System.out.println("⚠️ Keeping current active status: " + admin.getActive());
         }
         
         admin.setUpdatedAt(Instant.now());
         
-        return repo.save(admin);
+        // Save và flush để đảm bảo thay đổi được lưu vào database ngay lập tức
+        Admin savedAdmin = repo.save(admin);
+        repo.flush(); // Force flush to database
+        
+        System.out.println("DEBUG: Admin saved successfully. Active status in DB: " + savedAdmin.getActive() + " for admin ID: " + savedAdmin.getId());
+        
+        return savedAdmin;
+    }
+
+    @Transactional
+    public Admin updateStatus(String id, Boolean active) {
+        Admin admin = getById(id);
+        Boolean oldActiveStatus = admin.getActive();
+        admin.setActive(active);
+        admin.setUpdatedAt(Instant.now());
+        
+        System.out.println("DEBUG: Updating admin status from " + oldActiveStatus + " to " + active + " for admin ID: " + admin.getId());
+        
+        Admin savedAdmin = repo.save(admin);
+        repo.flush();
+        
+        System.out.println("DEBUG: Admin status updated successfully. Active status: " + savedAdmin.getActive() + " for admin ID: " + savedAdmin.getId());
+        
+        return savedAdmin;
     }
 
     @Transactional

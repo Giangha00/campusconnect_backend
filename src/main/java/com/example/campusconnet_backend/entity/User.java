@@ -31,6 +31,9 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role; // student / faculty / visitor
 
+    @Column(name = "active", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    private Boolean active = true;
+
     @Column(length = 100)
     private String department;
 

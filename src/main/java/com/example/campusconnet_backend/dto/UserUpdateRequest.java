@@ -27,6 +27,11 @@ public class UserUpdateRequest {
     
     private Role role;
     
+    private Boolean active;
+    
+    // Hỗ trợ cả string status ("Active"/"Inactive") từ FE
+    private String status;
+    
     @Size(max = 100, message = "Department must not exceed 100 characters")
     private String department;
     

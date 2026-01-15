@@ -4,6 +4,7 @@ import com.example.campusconnet_backend.dto.ErrorResponse;
 import com.example.campusconnet_backend.dto.LoginRequest;
 import com.example.campusconnet_backend.dto.UserCreateRequest;
 import com.example.campusconnet_backend.dto.UserResponse;
+import com.example.campusconnet_backend.dto.UserStatusUpdateRequest;
 import com.example.campusconnet_backend.dto.UserUpdateRequest;
 import com.example.campusconnet_backend.entity.User;
 import com.example.campusconnet_backend.service.UserService;
@@ -11,7 +12,6 @@ import jakarta.validation.Valid;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -104,8 +104,27 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable String id, @Valid @RequestBody UserUpdateRequest request) {
         try {
+            System.out.println("=== USER UPDATE REQUEST ===");
+            System.out.println("User ID: " + id);
+            System.out.println("Request active field (boolean): " + request.getActive());
+            System.out.println("Request status field (string): " + request.getStatus());
+            System.out.println("Request body: " + request.toString());
+            
+            if (request.getActive() == null && (request.getStatus() == null || request.getStatus().trim().isEmpty())) {
+                System.out.println("⚠️ WARNING: Neither 'active' (boolean) nor 'status' (string) field provided!");
+                System.out.println("⚠️ Backend will keep the current active status from database.");
+                System.out.println("⚠️ To update active status, include one of:");
+                System.out.println("   1. 'active' field (boolean: true/false), OR");
+                System.out.println("   2. 'status' field (string: 'Active'/'Inactive'), OR");
+                System.out.println("   3. Use PATCH /api/users/" + id + "/status endpoint");
+            }
+            
             User user = service.update(id, request);
-            return ResponseEntity.ok(service.getResponseById(user.getId()));
+            UserResponse response = service.getResponseById(user.getId());
+            
+            System.out.println("Updated user active status: " + response.getActive());
+            System.out.println("=== END USER UPDATE ===");
+            return ResponseEntity.ok(response);
         } catch (DataIntegrityViolationException e) {
             // Handle database constraint violations (unique constraint on username/email)
             String errorMessage = e.getMessage();
@@ -136,6 +155,26 @@ public class UserController {
             // Catch any other unexpected exceptions
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse("Lỗi server khi cập nhật tài khoản"));
+        }
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<?> updateStatus(@PathVariable String id, @Valid @RequestBody UserStatusUpdateRequest request) {
+        try {
+            System.out.println("Received status update request for user ID: " + id);
+            System.out.println("Request active field: " + request.getActive());
+            
+            User user = service.updateStatus(id, request.getActive());
+            UserResponse response = service.getResponseById(user.getId());
+            
+            System.out.println("Updated user active status: " + response.getActive());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage() != null ? e.getMessage() : "Lỗi khi cập nhật trạng thái tài khoản"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("Lỗi server khi cập nhật trạng thái tài khoản"));
         }
     }
 

@@ -26,4 +26,9 @@ public class AdminUpdateRequest {
     private String email;
     
     private Role role;
+    
+    private Boolean active;
+    
+    // Hỗ trợ cả string status ("Active"/"Inactive") từ FE
+    private String status;
 }

@@ -2,6 +2,7 @@ package com.example.campusconnet_backend.controller;
 
 import com.example.campusconnet_backend.dto.AdminCreateRequest;
 import com.example.campusconnet_backend.dto.AdminResponse;
+import com.example.campusconnet_backend.dto.AdminStatusUpdateRequest;
 import com.example.campusconnet_backend.dto.AdminUpdateRequest;
 import com.example.campusconnet_backend.dto.ErrorResponse;
 import com.example.campusconnet_backend.dto.LoginRequest;
@@ -136,6 +137,26 @@ public class AdminController {
             // Catch any other unexpected exceptions
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse("Lỗi server khi cập nhật tài khoản"));
+        }
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<?> updateStatus(@PathVariable String id, @Valid @RequestBody AdminStatusUpdateRequest request) {
+        try {
+            System.out.println("Received status update request for admin ID: " + id);
+            System.out.println("Request active field: " + request.getActive());
+            
+            Admin admin = service.updateStatus(id, request.getActive());
+            AdminResponse response = service.getResponseById(admin.getId());
+            
+            System.out.println("Updated admin active status: " + response.getActive());
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(e.getMessage() != null ? e.getMessage() : "Lỗi khi cập nhật trạng thái tài khoản"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("Lỗi server khi cập nhật trạng thái tài khoản"));
         }
     }
 

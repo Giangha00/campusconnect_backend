@@ -31,6 +31,9 @@ public class Admin {
     @Column(nullable = false, length = 20)
     private Role role; // admin / faculty
 
+    @Column(name = "active", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    private Boolean active = true;
+
     @Column(name="created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
