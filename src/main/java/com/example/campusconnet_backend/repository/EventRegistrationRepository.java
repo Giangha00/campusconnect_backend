@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface EventRegistrationRepository extends JpaRepository<EventRegistration, String> {
     Optional<EventRegistration> findByUser_IdAndEvent_Id(String userId, Long eventId);
+    Optional<EventRegistration> findByTicketNumber(String ticketNumber);
+    java.util.List<EventRegistration> findByUser_Id(String userId);
 }

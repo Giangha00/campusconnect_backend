@@ -35,6 +35,11 @@ public class EventRegistrationService {
     }
 
     @Transactional(readOnly = true)
+    public List<EventRegistration> getByUserId(String userId) {
+        return repo.findByUser_Id(userId);
+    }
+
+    @Transactional(readOnly = true)
     public EventRegistration findById(String id) {
         return repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Registration not found"));
@@ -78,6 +83,15 @@ public class EventRegistrationService {
 
     @Transactional
     public EventRegistration save(String userId, Long eventId) {
+        // Validate inputs
+        if (userId == null || userId.isBlank()) {
+            throw new RuntimeException("userId is required");
+        }
+        
+        if (eventId == null) {
+            throw new RuntimeException("eventId is required");
+        }
+        
         // Kiểm tra xem đã đăng ký chưa
         java.util.Optional<EventRegistration> existing = repo.findByUser_IdAndEvent_Id(userId, eventId);
 
@@ -85,15 +99,36 @@ public class EventRegistrationService {
             throw new RuntimeException("Registration already exists for this user and event");
         }
 
+        // Load user and event with better error messages
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
         Event event = eventRepo.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found: " + eventId));
+        
+        // Additional validation: check if event allows registration
+        if (event.getRegistrationRequired() == null || !event.getRegistrationRequired()) {
+            // If registration not required, still allow but log
+            System.out.println("Warning: Registering for event that doesn't require registration: " + eventId);
+        }
 
+        // Generate unique ticket number
         Instant now = Instant.now();
         String id = UUID.randomUUID().toString();
         String ticketNumber = generateTicketNumber(id, now);
+        
+        // Ensure ticket number is unique (retry if needed - very unlikely with UUID)
+        int maxRetries = 5;
+        int retryCount = 0;
+        while (repo.findByTicketNumber(ticketNumber).isPresent() && retryCount < maxRetries) {
+            id = UUID.randomUUID().toString();
+            ticketNumber = generateTicketNumber(id, now);
+            retryCount++;
+        }
+        
+        if (retryCount >= maxRetries) {
+            throw new RuntimeException("Unable to generate unique ticket number. Please try again.");
+        }
 
         EventRegistration reg = new EventRegistration();
         reg.setId(id);
@@ -105,7 +140,29 @@ public class EventRegistrationService {
         reg.setCreatedAt(now);
         reg.setUpdatedAt(now);
 
-        return repo.save(reg);
+        try {
+            return repo.save(reg);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // Handle unique constraint violation
+            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+            Throwable rootCause = e.getRootCause();
+            String rootCauseMsg = rootCause != null ? rootCause.getMessage() : "";
+            
+            // Check both the exception message and root cause message
+            if (errorMsg.contains("uk_registrations_user_event") || 
+                errorMsg.contains("Duplicate entry") ||
+                errorMsg.contains("unique constraint") ||
+                rootCauseMsg.contains("uk_registrations_user_event") ||
+                rootCauseMsg.contains("Duplicate entry") ||
+                rootCauseMsg.contains("unique constraint")) {
+                throw new RuntimeException("Registration already exists for this user and event");
+            }
+            // Re-throw as RuntimeException to be handled by GlobalExceptionHandler
+            throw new RuntimeException("Failed to save registration: " + errorMsg, e);
+        } catch (Exception e) {
+            // Catch any other exceptions
+            throw new RuntimeException("Failed to save registration: " + e.getMessage(), e);
+        }
     }
 
     private String generateTicketNumber(String id, Instant timestamp) {
@@ -138,5 +195,15 @@ public class EventRegistrationService {
     @Transactional
     public void delete(String id) {
         repo.deleteById(id);
+    }
+
+    @Transactional
+    public void deleteByUserAndEvent(String userId, Long eventId) {
+        java.util.Optional<EventRegistration> registration = repo.findByUser_IdAndEvent_Id(userId, eventId);
+        if (registration.isPresent()) {
+            repo.deleteById(registration.get().getId());
+        } else {
+            throw new RuntimeException("Registration not found for userId: " + userId + ", eventId: " + eventId);
+        }
     }
 }
