@@ -1,6 +1,7 @@
 package com.example.campusconnet_backend.service;
 
 import com.example.campusconnet_backend.dto.EventCreateRequest;
+import com.example.campusconnet_backend.dto.EventResponse;
 import com.example.campusconnet_backend.dto.EventUpdateRequest;
 import com.example.campusconnet_backend.entity.Admin;
 import com.example.campusconnet_backend.entity.Event;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class EventService {
@@ -28,9 +30,76 @@ public class EventService {
     }
 
     @Transactional(readOnly = true)
+    public List<EventResponse> findAllResponses() {
+        return repo.findAllWithOrganizerAndDepartment().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public Event findById(Long id) {
         return repo.findByIdWithOrganizerAndDepartment(id)
                 .orElseThrow(() -> new RuntimeException("Event not found: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public EventResponse findResponseById(Long id) {
+        Event event = findById(id);
+        return toResponse(event);
+    }
+
+    /**
+     * Get department name from organizer's departmentEntity (via JOIN)
+     * Returns null if organizer has no department assigned
+     */
+    private String getOrganizerDepartmentName(Admin organizer) {
+        if (organizer != null && organizer.getDepartmentEntity() != null) {
+            return organizer.getDepartmentEntity().getName();
+        }
+        return null;
+    }
+
+    /**
+     * Convert Event entity to EventResponse DTO
+     * Automatically sets department from organizer's department
+     */
+    private EventResponse toResponse(Event event) {
+        EventResponse.OrganizerInfo organizerInfo = null;
+        String department = null;
+        
+        if (event.getOrganizer() != null) {
+            Admin organizer = event.getOrganizer();
+            department = getOrganizerDepartmentName(organizer);
+            
+            organizerInfo = new EventResponse.OrganizerInfo(
+                    organizer.getId(),
+                    organizer.getName(),
+                    organizer.getUsername(),
+                    organizer.getEmail(),
+                    department
+            );
+        }
+        
+        return new EventResponse(
+                event.getId(),
+                event.getOrganizer() != null ? event.getOrganizer().getId() : null,
+                organizerInfo,
+                event.getTitle(),
+                event.getDescription(),
+                event.getStartDate(),
+                event.getEndDate(),
+                event.getVenue(),
+                event.getCategory(),
+                event.getStatus(),
+                event.getImageUrl(),
+                event.getRegistrationRequired(),
+                event.getCapacity(),
+                event.getRegistrationStart(),
+                event.getRegistrationEnd(),
+                department, // Department name from organizer's department
+                event.getCreatedAt(),
+                event.getUpdatedAt()
+        );
     }
 
     @Transactional
