@@ -18,6 +18,7 @@ public class AdminResponse {
     private String email;
     private Role role;
     private Boolean active;
+    private String department; // Department name from JOIN
     private Instant createdAt;
     private Instant updatedAt;
 }

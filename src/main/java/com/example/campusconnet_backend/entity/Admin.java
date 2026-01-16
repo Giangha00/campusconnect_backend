@@ -1,6 +1,7 @@
 package com.example.campusconnet_backend.entity;
 
 import com.example.campusconnet_backend.model.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -33,6 +34,11 @@ public class Admin {
 
     @Column(name = "active", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
     private Boolean active = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id", foreignKey = @ForeignKey(name = "fk_admins_department"))
+    @JsonIgnore // Prevent Jackson from serializing this lazy-loaded relationship
+    private Department departmentEntity;
 
     @Column(name="created_at", nullable = false, updatable = false)
     private Instant createdAt;

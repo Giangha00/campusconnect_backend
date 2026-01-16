@@ -4,8 +4,10 @@ import com.example.campusconnet_backend.dto.AdminCreateRequest;
 import com.example.campusconnet_backend.dto.AdminResponse;
 import com.example.campusconnet_backend.dto.AdminUpdateRequest;
 import com.example.campusconnet_backend.entity.Admin;
+import com.example.campusconnet_backend.entity.Department;
 import com.example.campusconnet_backend.model.Role;
 import com.example.campusconnet_backend.repository.AdminRepository;
+import com.example.campusconnet_backend.repository.DepartmentRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,28 +21,30 @@ import java.util.UUID;
 public class AdminService {
 
     private final AdminRepository repo;
+    private final DepartmentRepository departmentRepo;
     private final PasswordEncoder passwordEncoder;
 
-    public AdminService(AdminRepository repo, PasswordEncoder passwordEncoder) {
+    public AdminService(AdminRepository repo, DepartmentRepository departmentRepo, PasswordEncoder passwordEncoder) {
         this.repo = repo;
+        this.departmentRepo = departmentRepo;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
     public List<Admin> getAll() {
-        return repo.findAll();
+        return repo.findAllWithDepartment();
     }
 
     @Transactional(readOnly = true)
     public List<AdminResponse> getAllResponses() {
-        return repo.findAll().stream()
+        return repo.findAllWithDepartment().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public Admin getById(String id) {
-        return repo.findById(id)
+        return repo.findByIdWithDepartment(id)
                 .orElseThrow(() -> new RuntimeException("Admin not found: " + id));
     }
 
@@ -48,6 +52,17 @@ public class AdminService {
     public AdminResponse getResponseById(String id) {
         Admin admin = getById(id);
         return toResponse(admin);
+    }
+
+    /**
+     * Get department name from departmentEntity (via JOIN)
+     * Returns null if admin has no department assigned
+     */
+    private String getDepartmentName(Admin admin) {
+        if (admin.getDepartmentEntity() != null) {
+            return admin.getDepartmentEntity().getName();
+        }
+        return null;
     }
 
     private AdminResponse toResponse(Admin admin) {
@@ -58,6 +73,7 @@ public class AdminService {
                 admin.getEmail(),
                 admin.getRole(),
                 admin.getActive(),
+                getDepartmentName(admin),
                 admin.getCreatedAt(),
                 admin.getUpdatedAt()
         );
@@ -85,6 +101,22 @@ public class AdminService {
         admin.setEmail(request.getEmail());
         admin.setRole(request.getRole());
         admin.setActive(true); // Mặc định active khi tạo mới
+        
+        // Set department using department_id if provided, otherwise try to find by name
+        if (request.getDepartmentId() != null && !request.getDepartmentId().trim().isEmpty()) {
+            Department dept = departmentRepo.findById(request.getDepartmentId())
+                    .orElseThrow(() -> new RuntimeException("Department không tồn tại với ID: " + request.getDepartmentId()));
+            admin.setDepartmentEntity(dept);
+        } else if (request.getDepartment() != null && !request.getDepartment().trim().isEmpty()) {
+            // Try to find department by name (for backward compatibility with frontend)
+            Department dept = departmentRepo.findByName(request.getDepartment())
+                    .orElse(null);
+            if (dept != null) {
+                admin.setDepartmentEntity(dept);
+            }
+            // If department name not found, departmentEntity will remain null
+        }
+        
         admin.setCreatedAt(now);
         admin.setUpdatedAt(now);
         
@@ -185,6 +217,21 @@ public class AdminService {
             System.out.println("⚠️ Keeping current active status: " + admin.getActive());
         }
         
+        // Update department using department_id if provided, otherwise try to find by name
+        if (request.getDepartmentId() != null && !request.getDepartmentId().trim().isEmpty()) {
+            Department dept = departmentRepo.findById(request.getDepartmentId())
+                    .orElseThrow(() -> new RuntimeException("Department không tồn tại với ID: " + request.getDepartmentId()));
+            admin.setDepartmentEntity(dept);
+        } else if (request.getDepartment() != null && !request.getDepartment().trim().isEmpty()) {
+            // Try to find department by name (for backward compatibility with frontend)
+            Department dept = departmentRepo.findByName(request.getDepartment())
+                    .orElse(null);
+            if (dept != null) {
+                admin.setDepartmentEntity(dept);
+            }
+            // If department name not found, departmentEntity will remain unchanged
+        }
+        
         admin.setUpdatedAt(Instant.now());
         
         // Save và flush để đảm bảo thay đổi được lưu vào database ngay lập tức
@@ -192,6 +239,12 @@ public class AdminService {
         repo.flush(); // Force flush to database
         
         System.out.println("DEBUG: Admin saved successfully. Active status in DB: " + savedAdmin.getActive() + " for admin ID: " + savedAdmin.getId());
+        
+        // Verify sau khi save
+        Admin verifiedAdmin = repo.findByIdWithDepartment(savedAdmin.getId()).orElse(null);
+        if (verifiedAdmin != null) {
+            System.out.println("DEBUG: Verified active status after save: " + verifiedAdmin.getActive() + " for admin ID: " + verifiedAdmin.getId());
+        }
         
         return savedAdmin;
     }
@@ -220,7 +273,7 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public Admin login(String username, String password) {
-        Admin admin = repo.findByUsername(username)
+        Admin admin = repo.findByUsernameWithDepartment(username)
                 .orElseThrow(() -> new RuntimeException("Invalid username or password"));
         
         // Verify password

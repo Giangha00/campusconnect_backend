@@ -1,6 +1,7 @@
 package com.example.campusconnet_backend.entity;
 
 import com.example.campusconnet_backend.model.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -36,6 +37,7 @@ public class User {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id", foreignKey = @ForeignKey(name = "fk_users_department"))
+    @JsonIgnore // Prevent Jackson from serializing this lazy-loaded relationship
     private Department departmentEntity;
 
     @Column(length = 10)

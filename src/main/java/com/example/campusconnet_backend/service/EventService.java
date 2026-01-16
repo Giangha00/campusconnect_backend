@@ -24,12 +24,13 @@ public class EventService {
 
     @Transactional(readOnly = true)
     public List<Event> findAll() {
-        return repo.findAll();
+        return repo.findAllWithOrganizerAndDepartment();
     }
 
     @Transactional(readOnly = true)
     public Event findById(Long id) {
-        return repo.findById(id).orElseThrow(() -> new RuntimeException("Event not found: " + id));
+        return repo.findByIdWithOrganizerAndDepartment(id)
+                .orElseThrow(() -> new RuntimeException("Event not found: " + id));
     }
 
     @Transactional
@@ -40,7 +41,7 @@ public class EventService {
         
         // Load organizer if organizerId is provided
         if (request.getOrganizerId() != null && !request.getOrganizerId().isBlank()) {
-            Admin organizer = adminRepo.findById(request.getOrganizerId())
+            Admin organizer = adminRepo.findByIdWithDepartment(request.getOrganizerId())
                     .orElseThrow(() -> new RuntimeException("Admin not found: " + request.getOrganizerId()));
             event.setOrganizer(organizer);
         }
@@ -75,7 +76,7 @@ public class EventService {
                 event.setOrganizer(null);
             } else {
                 // Non-empty organizerId means find and set the organizer
-                Admin organizer = adminRepo.findById(request.getOrganizerId())
+                Admin organizer = adminRepo.findByIdWithDepartment(request.getOrganizerId())
                         .orElseThrow(() -> new RuntimeException("Admin not found: " + request.getOrganizerId()));
                 event.setOrganizer(organizer);
             }
