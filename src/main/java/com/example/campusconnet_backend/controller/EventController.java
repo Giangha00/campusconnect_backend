@@ -5,7 +5,6 @@ import com.example.campusconnet_backend.dto.EventUpdateRequest;
 import com.example.campusconnet_backend.entity.Event;
 import com.example.campusconnet_backend.service.EventService;
 import jakarta.validation.Valid;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,7 +12,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/events")
 @CrossOrigin(origins = "*")
-@Transactional
 public class EventController {
 
     private final EventService service;

@@ -67,12 +67,20 @@ public class EventService {
     public Event update(Long id, EventUpdateRequest request) {
         Event event = findById(id);
 
-        // Update organizer if organizerId is provided
-        if (request.getOrganizerId() != null && !request.getOrganizerId().isBlank()) {
-            Admin organizer = adminRepo.findById(request.getOrganizerId())
-                    .orElseThrow(() -> new RuntimeException("Admin not found: " + request.getOrganizerId()));
-            event.setOrganizer(organizer);
+        // Handle organizer update: if organizerId is provided and not blank, find and set it
+        // If organizerId is explicitly null or empty, clear the organizer (set to null)
+        if (request.getOrganizerId() != null) {
+            if (request.getOrganizerId().isBlank()) {
+                // Empty string means clear the organizer
+                event.setOrganizer(null);
+            } else {
+                // Non-empty organizerId means find and set the organizer
+                Admin organizer = adminRepo.findById(request.getOrganizerId())
+                        .orElseThrow(() -> new RuntimeException("Admin not found: " + request.getOrganizerId()));
+                event.setOrganizer(organizer);
+            }
         }
+        // If organizerId is null in request, don't change the existing organizer
 
         if (request.getTitle() != null) {
             event.setTitle(request.getTitle());
