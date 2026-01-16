@@ -32,8 +32,11 @@ public class UserUpdateRequest {
     // Hỗ trợ cả string status ("Active"/"Inactive") từ FE
     private String status;
     
+    @Size(max = 36, message = "Department ID must not exceed 36 characters")
+    private String departmentId; // Preferred: use department_id
+    
     @Size(max = 100, message = "Department must not exceed 100 characters")
-    private String department;
+    private String department; // Deprecated: for backward compatibility, will try to find by name
     
     @Size(max = 10, message = "Year must not exceed 10 characters")
     private String year;

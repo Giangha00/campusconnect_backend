@@ -34,8 +34,9 @@ public class User {
     @Column(name = "active", nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
     private Boolean active = true;
 
-    @Column(length = 100)
-    private String department;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id", foreignKey = @ForeignKey(name = "fk_users_department"))
+    private Department departmentEntity;
 
     @Column(length = 10)
     private String year;

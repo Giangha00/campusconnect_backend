@@ -3,7 +3,9 @@ package com.example.campusconnet_backend.service;
 import com.example.campusconnet_backend.dto.UserCreateRequest;
 import com.example.campusconnet_backend.dto.UserResponse;
 import com.example.campusconnet_backend.dto.UserUpdateRequest;
+import com.example.campusconnet_backend.entity.Department;
 import com.example.campusconnet_backend.entity.User;
+import com.example.campusconnet_backend.repository.DepartmentRepository;
 import com.example.campusconnet_backend.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,28 +20,30 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository repo;
+    private final DepartmentRepository departmentRepo;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository repo, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository repo, DepartmentRepository departmentRepo, PasswordEncoder passwordEncoder) {
         this.repo = repo;
+        this.departmentRepo = departmentRepo;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional(readOnly = true)
     public List<User> getAll() {
-        return repo.findAll();
+        return repo.findAllWithDepartment();
     }
 
     @Transactional(readOnly = true)
     public List<UserResponse> getAllResponses() {
-        return repo.findAll().stream()
+        return repo.findAllWithDepartment().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public User getById(String id) {
-        return repo.findById(id)
+        return repo.findByIdWithDepartment(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
@@ -47,6 +51,17 @@ public class UserService {
     public UserResponse getResponseById(String id) {
         User user = getById(id);
         return toResponse(user);
+    }
+
+    /**
+     * Get department name from departmentEntity (via JOIN)
+     * Returns null if user has no department assigned
+     */
+    private String getDepartmentName(User user) {
+        if (user.getDepartmentEntity() != null) {
+            return user.getDepartmentEntity().getName();
+        }
+        return null;
     }
 
     private UserResponse toResponse(User user) {
@@ -57,7 +72,7 @@ public class UserService {
                 user.getEmail(),
                 user.getRole(),
                 user.getActive(),
-                user.getDepartment(),
+                getDepartmentName(user),
                 user.getYear(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
@@ -86,7 +101,22 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setRole(request.getRole());
         user.setActive(true); // Mặc định active khi tạo mới
-        user.setDepartment(request.getDepartment());
+        
+        // Set department using department_id if provided, otherwise try to find by name
+        if (request.getDepartmentId() != null && !request.getDepartmentId().trim().isEmpty()) {
+            Department dept = departmentRepo.findById(request.getDepartmentId())
+                    .orElseThrow(() -> new RuntimeException("Department không tồn tại với ID: " + request.getDepartmentId()));
+            user.setDepartmentEntity(dept);
+        } else if (request.getDepartment() != null && !request.getDepartment().trim().isEmpty()) {
+            // Try to find department by name (for backward compatibility with frontend)
+            Department dept = departmentRepo.findByName(request.getDepartment())
+                    .orElse(null);
+            if (dept != null) {
+                user.setDepartmentEntity(dept);
+            }
+            // If department name not found, departmentEntity will remain null
+        }
+        
         user.setYear(request.getYear());
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
@@ -188,9 +218,21 @@ public class UserService {
             System.out.println("   - Use PATCH /api/users/{id}/status endpoint");
         }
         
-        if (request.getDepartment() != null) {
-            user.setDepartment(request.getDepartment());
+        // Update department using department_id if provided, otherwise try to find by name
+        if (request.getDepartmentId() != null && !request.getDepartmentId().trim().isEmpty()) {
+            Department dept = departmentRepo.findById(request.getDepartmentId())
+                    .orElseThrow(() -> new RuntimeException("Department không tồn tại với ID: " + request.getDepartmentId()));
+            user.setDepartmentEntity(dept);
+        } else if (request.getDepartment() != null && !request.getDepartment().trim().isEmpty()) {
+            // Try to find department by name (for backward compatibility with frontend)
+            Department dept = departmentRepo.findByName(request.getDepartment())
+                    .orElse(null);
+            if (dept != null) {
+                user.setDepartmentEntity(dept);
+            }
+            // If department name not found, departmentEntity will remain unchanged
         }
+        
         if (request.getYear() != null) {
             user.setYear(request.getYear());
         }
@@ -204,7 +246,7 @@ public class UserService {
         System.out.println("DEBUG: User saved successfully. Active status in DB: " + savedUser.getActive() + " for user ID: " + savedUser.getId());
         
         // Verify sau khi save
-        User verifiedUser = repo.findById(savedUser.getId()).orElse(null);
+        User verifiedUser = repo.findByIdWithDepartment(savedUser.getId()).orElse(null);
         if (verifiedUser != null) {
             System.out.println("DEBUG: Verified active status after save: " + verifiedUser.getActive() + " for user ID: " + verifiedUser.getId());
         }
@@ -236,7 +278,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public User login(String username, String password) {
-        User user = repo.findByUsername(username)
+        User user = repo.findByUsernameWithDepartment(username)
                 .orElseThrow(() -> new RuntimeException("Invalid username or password"));
         
         // Verify password
